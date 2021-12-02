@@ -202,8 +202,8 @@ void Application::init(const std::string& resourceDirectory)
     CHECKED_GL_CALL(glClearColor(0.098f, 0.098f, 0.098f, 0.1f));
     // Enable z-buffer test.
     CHECKED_GL_CALL(glEnable(GL_DEPTH_TEST));
-    // CHECKED_GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     CHECKED_GL_CALL(glEnable(GL_BLEND));
+    // CHECKED_GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     CHECKED_GL_CALL(glPointSize(24.0f));
 
     // Initialize shaders & textures:
@@ -798,24 +798,78 @@ void Application::render(float frametime)
     ctm = rotX * scale;
     glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, value_ptr(ctm));
 
-    /*
+    
     Model->pushMatrix();
         Model->loadIdentity();
-        // Add transformations to position entire dummy
+        // Entire dummy transformations:
+        Model->rotate(-PI/2, vec3(1, 0, 0));
+        Model->scale(0.018);
 
         Model->pushMatrix();
+            Model->pushMatrix();
+                // Draw right arm:
+                Model->translate(vec3(2.33, -19.81, 137.60));
+                Model->rotate(rArmTheta, vec3(1, 0, 0));
+                Model->translate(vec3(-2.33, 19.81, -137.60));
+                setModel(prog, Model);
+                for (int i = 15; i < 21; i++)
+                    dummyShapes.at(i)->draw(prog);
+            Model->popMatrix();
 
+            Model->pushMatrix();
+                // Draw left upper arm:
+                Model->translate(vec3(2.33, 19.81, 137.60));
+                Model->rotate(lShoulderForwardTheta, vec3(0, 1, 0));
+                Model->rotate(lShoulderDownTheta, vec3(1, 0, 0));
+                Model->translate(vec3(-2.33, -19.81, -137.60));
+                setModel(prog, Model);
+                for (int i = 21; i < 23; i++)
+                    dummyShapes.at(i)->draw(prog);
+                Model->pushMatrix();
+                    // Draw left lower arm:
+                    Model->translate(vec3(2.33, 47.63, 137.60));
+                    Model->rotate(lElbowUpTheta, vec3(0, 0, 1));
+                    Model->rotate(lElbowInTheta, vec3(1, 0, 0));
+                    Model->translate(vec3(-2.33, -47.63, -137.60));
+                    setModel(prog, Model);
+                    for (int i = 23; i < 25; i++)
+                        dummyShapes.at(i)->draw(prog);
+                    Model->pushMatrix();
+                        // Draw left hand (bent wrist):
+                        Model->translate(vec3(2.33, 73.06, 137.60));
+                        Model->rotate(lWristDownTheta, vec3(1, 0, 0));
+                        Model->rotate(lWristTwistTheta, vec3(0, 1, 0));
+                        Model->translate(vec3(-2.33, -73.06, -137.60));
+                        setModel(prog, Model);
+                        for (int i = 25; i < 27; i++)
+                            dummyShapes.at(i)->draw(prog);
+                    Model->popMatrix();
+                Model->popMatrix();
+            Model->popMatrix();
+            // Draw torso, belly, neck, head:
+            setModel(prog, Model);
+            for (int i = 13; i < 29; i++) {
+                if (i < 15 || i > 26)
+                    dummyShapes.at(i)->draw(prog);
+            }
         Model->popMatrix();
-
-
-
     Model->popMatrix();
-    */
-
-    //for (int i = 0; i < dummyShapes.size(); i++)
-    //    dummyShapes.at(i)->draw(prog);
 
     prog->unbind();
+
+    midPoint = getMidPoint(dummyShapes.at(25)->max.x,
+                            dummyShapes.at(25)->min.x,
+                            dummyShapes.at(25)->max.y,
+                            dummyShapes.at(25)->min.y,
+                            dummyShapes.at(25)->max.z,
+                            dummyShapes.at(25)->min.z);
+    cout << "x: " << midPoint[0] << endl;
+    cout << "y: " << midPoint[1] << endl;
+    cout << "z: " << midPoint[2] << endl;
+    
+
+    // Dummy animation data:
+    
 
     //switch shaders to the texture mapping shader and draw the ground
     texProg->bind();
@@ -829,6 +883,7 @@ void Application::render(float frametime)
     thePartSystem->setCamera(View->topMatrix());
 
     // Draw campfire particles
+    CHECKED_GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     partProg->bind();
     fireTex->bind(partProg->getUniform("alphaTexture"));
     CHECKED_GL_CALL(glUniformMatrix4fv(partProg->getUniform("P"), 1, GL_FALSE, value_ptr(Projection->topMatrix())));
@@ -839,6 +894,7 @@ void Application::render(float frametime)
     thePartSystem->update();
 
     partProg->unbind();
+    CHECKED_GL_CALL(glBlendFunc(GL_ONE, GL_ZERO));
 
     // Pop matrix stacks.
     Projection->popMatrix();
