@@ -809,7 +809,8 @@ void Application::render(float frametime)
             Model->pushMatrix();
                 // Draw right arm:
                 Model->translate(vec3(2.33, -19.81, 137.60));
-                Model->rotate(rArmTheta, vec3(1, 0, 0));
+                Model->rotate(rArmForwardTheta, vec3(0, 1, 0));
+                Model->rotate(rArmDownTheta, vec3(1, 0, 0));
                 Model->translate(vec3(-2.33, 19.81, -137.60));
                 setModel(prog, Model);
                 for (int i = 15; i < 21; i++)
@@ -846,27 +847,82 @@ void Application::render(float frametime)
                     Model->popMatrix();
                 Model->popMatrix();
             Model->popMatrix();
+
+            Model->pushMatrix();
+                // Draw left upper leg:
+                Model->translate(vec3(2.33, 7.93, 92.95));
+                Model->rotate(lPelvisTheta, vec3(0, 1, 0));
+                Model->translate(vec3(-2.33, -7.93, -92.95));
+                setModel(prog, Model);
+                for (int i = 10; i < 12; i++)
+                    dummyShapes.at(i)->draw(prog);
+                Model->pushMatrix();
+                    // Draw left lower leg:
+                    Model->translate(vec3(2.33, 7.93, 48.32));
+                    Model->rotate(lKneeTheta, vec3(0, 1, 0));
+                    Model->translate(vec3(-2.33, -7.93, -48.32));
+                    setModel(prog, Model);
+                    for (int i = 6; i < 10; i++)
+                        dummyShapes.at(i)->draw(prog);
+                Model->popMatrix();
+            Model->popMatrix();
+            
+            Model->pushMatrix();
+                // Draw right upper leg:
+                Model->translate(vec3(2.33, -7.93, 92.95));
+                Model->rotate(rPelvisTheta, vec3(0, 1, 0));
+                Model->translate(vec3(-2.33, 7.93, -92.95));
+                setModel(prog, Model);
+                for (int i = 4; i < 6; i++)
+                    dummyShapes.at(i)->draw(prog);
+                Model->pushMatrix();
+                    // Draw right lower leg:
+                    Model->translate(vec3(2.33, -7.93, 48.32));
+                    Model->rotate(rKneeTheta, vec3(0, 1, 0));
+                    Model->translate(vec3(-2.33, 7.93, -48.32));
+                    setModel(prog, Model);
+                    for (int i = 0; i < 4; i++)
+                        dummyShapes.at(i)->draw(prog);
+                Model->popMatrix();
+            Model->popMatrix();
+
             // Draw torso, belly, neck, head:
             setModel(prog, Model);
-            for (int i = 13; i < 29; i++) {
+            for (int i = 12; i < 29; i++) {
                 if (i < 15 || i > 26)
                     dummyShapes.at(i)->draw(prog);
             }
         Model->popMatrix();
     Model->popMatrix();
 
+    // Dummy animation updates:
+    rArmDownTheta = (PI / 2) - 0.2;
+    rArmForwardTheta = -0.2 * sin(glfwGetTime() * 1.2);
+    lWristDownTheta = -PI / 4;
+    lWristTwistTheta = PI / 5;
+    lShoulderDownTheta = -(PI / 2) + 0.2;
+    lShoulderForwardTheta = - PI / 4;
+    // (0.2 * sin(glfwGetTime() * 1.2));
+    lElbowInTheta = -PI / 8;
+    lElbowUpTheta = -PI / 2;
+    lKneeTheta = -0.3 * cos(glfwGetTime() * 2.3) + 0.35;
+    lPelvisTheta = 0.5 * sin(glfwGetTime() * 2.3);
+    rKneeTheta = 0.3 * cos(glfwGetTime() * 2.3) + 0.35;
+    rPelvisTheta = -0.5 * sin(glfwGetTime() * 2.3);
+
     prog->unbind();
 
-    midPoint = getMidPoint(dummyShapes.at(25)->max.x,
-                            dummyShapes.at(25)->min.x,
-                            dummyShapes.at(25)->max.y,
-                            dummyShapes.at(25)->min.y,
-                            dummyShapes.at(25)->max.z,
-                            dummyShapes.at(25)->min.z);
+    /*
+    midPoint = getMidPoint(dummyShapes.at(11)->max.x,
+                            dummyShapes.at(11)->min.x,
+                            dummyShapes.at(11)->max.y,
+                            dummyShapes.at(11)->min.y,
+                            dummyShapes.at(11)->max.z,
+                            dummyShapes.at(11)->min.z);
     cout << "x: " << midPoint[0] << endl;
     cout << "y: " << midPoint[1] << endl;
     cout << "z: " << midPoint[2] << endl;
-    
+    */
 
     // Dummy animation data:
     

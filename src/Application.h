@@ -94,13 +94,18 @@ class Application : public EventCallbacks
         float hTheta = 0;
 
         // Dummy animation data:
-        float rArmTheta = (PI / 2) - 0.2;
-        float lWristDownTheta = -PI / 4;
-        float lWristTwistTheta = PI / 5;
-        float lShoulderDownTheta = -(PI / 2) + 0.2;
-        float lShoulderForwardTheta = - PI / 4;
-        float lElbowInTheta = -PI / 8;
-        float lElbowUpTheta = -PI / 2;
+        float rArmDownTheta = 0;
+        float rArmForwardTheta = 0;
+        float lWristDownTheta = 0;
+        float lWristTwistTheta = 0;
+        float lShoulderDownTheta = 0;
+        float lShoulderForwardTheta = 0;
+        float lElbowInTheta = 0;
+        float lElbowUpTheta = 0;
+        float lKneeTheta = 0;
+        float lPelvisTheta = 0;
+        float rKneeTheta = 0;
+        float rPelvisTheta = 0;
 
         // Camera scrolling variables:
         vec3 eyePosInit = vec3(-8, 2, 0);
