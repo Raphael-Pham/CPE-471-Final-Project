@@ -201,6 +201,8 @@ class Application : public EventCallbacks
         float distance(float, float, float, float);
         bool checkCollision();
         void fixPosition();
+        bool checkTower();
+        void moveStairs();
         void drawDummy(shared_ptr<MatrixStack>);
         void renderGround(shared_ptr<MatrixStack>, shared_ptr<MatrixStack>,
                           shared_ptr<MatrixStack>, shared_ptr<Program>);

@@ -865,7 +865,7 @@ void Application::drawTower()
     trans1 = setModel(vec3(-1 * midPoint.at(0), -1 * midPoint.at(1), -1 * midPoint.at(2)),
                       0, 0, 0, 1);
     scale = setModel(vec3(0, 0, 0), 0, 0, 0, 0.8);
-    rotY = setModel(vec3(0, 0, 0), 0, PI / 6, 0, 1);
+    rotY = setModel(vec3(0, 0, 0), 0, PI, 0, 1);
     trans2 = setModel(vec3(10, midPoint.at(1) - 5, -20), 0, 0, 0, 1);
     ctm = trans2 * rotY * scale * trans1;
     glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, value_ptr(ctm));
@@ -884,6 +884,47 @@ bool Application::checkCollision()
             return true;
     }
     return false;
+}
+bool Application::checkTower()
+{
+    float firTowerXMin = 10.15;
+    float firTowerXMax = 13.17;
+    float firTowerZMin = -24.50;
+    float firTowerZMax = -15.22;
+
+    float secTowerXMin = 6.419;
+    float secTowerXMax = 9.924;
+    float secTowerZMin = -25.350;
+    float secTowerZMax = -15.169;
+
+    if ((eyePos.x >= firTowerXMin && eyePos.x <= firTowerXMax &&
+        eyePos.z >= firTowerZMin && eyePos.z <= firTowerZMax) || 
+        (eyePos.x >= secTowerXMin && eyePos.x <= secTowerXMax &&
+         eyePos.z >= secTowerZMin && eyePos.z <= secTowerZMax)){
+        return true;
+    }
+    return false;
+}
+void Application::moveStairs()
+{
+    float speed = 0.055;
+    // Looking up:
+    if (lookAtPt.y > eyePos.y)
+    {
+        eyePos.y += speed;
+        dummyPos.y += speed;
+        lookAtPtDelta.y += speed;
+    }
+    // Looking down:
+    else
+    {
+        if (eyePos.y > 1.5)
+        {
+        eyePos.y -= speed;
+        dummyPos.y -= speed;
+        lookAtPtDelta.y -= speed;
+        }
+    }
 }
 void Application::fixPosition()
 {
@@ -1034,14 +1075,12 @@ void Application::drawDummy(shared_ptr<MatrixStack> Model)
     lWristTwistTheta = PI / 5;
     lShoulderDownTheta = -(PI / 2) + 0.2;
     lShoulderForwardTheta = - PI / 4;
-    //  + (0.2 * sin(glfwGetTime() * 1.2));
     lElbowInTheta = -PI / 8;
     lElbowUpTheta = -PI / 2;
     lKneeTheta = -0.3 * cos(glfwGetTime() * 2.3) + 0.35;
     lPelvisTheta = 0.5 * sin(glfwGetTime() * 2.3);
     rKneeTheta = 0.3 * cos(glfwGetTime() * 2.3) + 0.35;
     rPelvisTheta = -0.5 * sin(glfwGetTime() * 2.3);
-    // lanternSpin = - 0.1 * sin(1.2 * glfwGetTime()) + 0.25;
 }
 void Application::renderGround(shared_ptr<MatrixStack> Projection,
                                shared_ptr<MatrixStack> View,
@@ -1118,7 +1157,16 @@ void Application::render(float frametime)
     if (collision)
         fixPosition();
 
+    // Tower movement
+    bool onTower = checkTower();
+    if (onTower)
+        moveStairs();
+
     drawDummy(Model);
+
+    cout << "dummyX: " << eyePos.x << endl;
+    cout << "dummyZ: " << eyePos.z << endl;
+
     prog->unbind();
 
     // Draw ground
