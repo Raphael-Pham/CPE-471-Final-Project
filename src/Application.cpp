@@ -406,6 +406,36 @@ void Application::initDummy(
         }
     }
 }
+void Application::initLantern(
+    const std::string& resourceDirectory, 
+    vector<tinyobj::material_t> objMaterials,
+    vector<tinyobj::shape_t> TOshapes,
+    string errStr)
+{
+    shared_ptr<Shape> lanternShape;
+    bool rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/lantern.obj").c_str());
+    if (!rc) {
+        cerr << errStr << endl;
+    } else {
+        lanternGMin.x = lanternGMin.y = lanternGMin.z = INT16_MAX;
+        lanternGMax.x = lanternGMax.y = lanternGMax.z = INT16_MIN;
+
+        for (int i = 0; i < TOshapes.size(); i++) {
+            lanternShape = make_shared<Shape>();
+            lanternShape->createShape(TOshapes[i]);
+            lanternShape->measure();
+            lanternShape->init();
+            lanternPieces.push_back(lanternShape);
+
+            if (lanternShape->min.x < lanternGMin.x) lanternGMin.x = lanternShape->min.x;
+            if (lanternShape->min.y < lanternGMin.y) lanternGMin.y = lanternShape->min.y;
+            if (lanternShape->min.z < lanternGMin.z) lanternGMin.z = lanternShape->min.z;
+            if (lanternShape->max.x > lanternGMax.x) lanternGMax.x = lanternShape->max.x;
+            if (lanternShape->max.y > lanternGMax.y) lanternGMax.y = lanternShape->max.y;
+            if (lanternShape->max.z > lanternGMax.z) lanternGMax.z = lanternShape->max.z;
+        }
+    }
+}
 void Application::initGeom(const std::string& resourceDirectory)
 {
     vector<tinyobj::material_t> objMaterials;
@@ -419,6 +449,7 @@ void Application::initGeom(const std::string& resourceDirectory)
     initTrees(resourceDirectory, objMaterials, TOshapes, errStr);
     initSkybox(resourceDirectory, objMaterials, TOshapes, errStr);
     initDummy(resourceDirectory, objMaterials, TOshapes, errStr);
+    initLantern(resourceDirectory, objMaterials, TOshapes, errStr);
     initGround();
 }
 
@@ -633,7 +664,7 @@ void Application::updateUsingCameraPath(float frametime){
     }
 }
 
-void Application::render(float frametime) 
+float Application::renderSetup()
 {
     // Get current frame buffer size.
     int width, height;
@@ -643,21 +674,11 @@ void Application::render(float frametime)
     // Clear framebuffer
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    //Use the matrix stack for Lab 6
-    float aspect = width/(float)height;
+    return width/(float)height;
+}
 
-    // Create the matrix stacks - please leave these alone for now
-    auto Projection = make_shared<MatrixStack>();
-    auto View = make_shared<MatrixStack>();
-    auto Model = make_shared<MatrixStack>();
-
-    // Update the camera position
-	updateUsingCameraPath(frametime);
-
-    // Apply perspective projection.
-    Projection->pushMatrix();
-    Projection->perspective(45.0f, aspect, 0.01f, 100.0f);
-
+void Application::updateCam()
+{
     // Update lookAtPt
     lookAtPt.x = cos(scrollPhi) * cos(scrollTheta) + lookAtPtDelta.x + eyePosInit.x;
     lookAtPt.y = sin(scrollPhi) + lookAtPtDelta.y + eyePosInit.y;
@@ -668,14 +689,12 @@ void Application::render(float frametime)
     w = -gaze / length(gaze);
     u = cross(vec3(0, 1, 0), w);
     v = cross(w, u);
+}
 
-    // View is global translation along negative z for now
-    View->pushMatrix();
-    View->loadIdentity();
-    View->lookAt(eyePos, lookAtPt, vec3(0, 1, 0));
-
-    // Draw the skybox
-    //to draw the sky box bind the right shader 
+void Application::drawSkybox(shared_ptr<MatrixStack> Projection,
+                             shared_ptr<MatrixStack> View,
+                             shared_ptr<MatrixStack> Model)
+{
     Model->pushMatrix();
         cubeProg->bind(); 
         //set the projection matrix - can use the same one 
@@ -701,20 +720,17 @@ void Application::render(float frametime)
         //unbind the shader for the skybox 
         cubeProg->unbind();
     Model->popMatrix();
-
-    // Draw the scene
-    prog->bind();
-    glUniformMatrix4fv(prog->getUniform("P"), 1, GL_FALSE, value_ptr(Projection->topMatrix()));
-    glUniformMatrix4fv(prog->getUniform("V"), 1, GL_FALSE, value_ptr(View->topMatrix()));
-    glUniform3f(prog->getUniform("lightPos1"), -2.0 + lightTrans, 2.0, 2.0);
-    glUniform3f(prog->getUniform("lightPos2"), 0.0 + lightTrans, -0.25, 5.0);
-
-    float midX, midY, midZ;
+}
+void Application::drawLights(shared_ptr<Program> prog)
+{
+    glUniform3f(prog->getUniform("lightPos1"), 0.0 + lightTrans, -0.25, 0.0);
+    glUniform3f(prog->getUniform("lightPos2"), 0.0 + lightTrans, -0.25, 0.0);
+}
+void Application::drawCampfire()
+{
     vector<float> midPoint;
-    mat4 ctm, trans, rotX, rotY, rotZ, scale;
-    mat4 trans1, trans2;
+    mat4 trans, scale, trans2, ctm;
 
-    // Draw campfire:
     SetMaterial(prog, 3);
     midPoint = getMidPoint(fireGMax.x, fireGMin.x,
                            fireGMax.y, fireGMin.y,
@@ -727,8 +743,12 @@ void Application::render(float frametime)
     glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, value_ptr(ctm));
     for (int i = 0; i < firePieces.size(); i++)
         firePieces.at(i)->draw(prog);
+}
+void Application::drawTent()
+{
+    vector<float> midPoint;
+    mat4 trans1, scale, rotY, trans2, ctm;
 
-    // Draw tent:
     SetMaterial(prog, material);
     midPoint = getMidPoint(tentGMax.x, tentGMin.x,
                            tentGMax.y, tentGMin.y,
@@ -742,8 +762,12 @@ void Application::render(float frametime)
     glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, value_ptr(ctm));
     for (int i = 0; i < tentPieces.size(); i++)
         tentPieces.at(i)->draw(prog);
+}
+void Application::drawTable()
+{
+    vector<float> midPoint;
+    mat4 trans1, rotX, scale, trans2, ctm;
 
-    // Draw table:
     SetMaterial(prog, 5);
     midPoint = getMidPoint(tableGMax.x, tableGMin.x,
                            tableGMax.y, tableGMin.y,
@@ -757,8 +781,11 @@ void Application::render(float frametime)
     glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, value_ptr(ctm));
     for (int i = 0; i < tablePieces.size(); i++)
         tablePieces.at(i)->draw(prog);
+}
+void Application::drawLog()
+{
+    mat4 rotX, scale, rotY, trans, ctm;
 
-    // Draw log:
     SetMaterial(prog, 5);
     rotX = setModel(vec3(0, 0, 0), PI, 0, 0, 1);
     scale = setModel(vec3(0, 0, 0), 0, 0, 0, 0.67);
@@ -767,8 +794,12 @@ void Application::render(float frametime)
     ctm = trans * rotX * rotY * scale;
     glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, value_ptr(ctm));
     log->draw(prog);
+}
+void Application::drawTrees()
+{
+    vector<float> midPoint;
+    mat4 trans1, scale, trans2, ctm;
 
-    // Draw trees:
     SetMaterial(prog, 6);
     midPoint = getMidPoint(treeGMax.x, treeGMin.x,
                            treeGMax.y, treeGMin.y,
@@ -790,21 +821,16 @@ void Application::render(float frametime)
         }
         treesMade++;
     }
-
-    // Draw dummy:
+}
+void Application::drawDummy(shared_ptr<MatrixStack> Model)
+{
     SetMaterial(prog, 4);
-    scale = setModel(vec3(0, 0, 0), 0, 0, 0, 0.02);
-    rotX = setModel(vec3(0, 0, 0), -PI / 2, 0, 0, 1);
-    ctm = rotX * scale;
-    glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, value_ptr(ctm));
-
-    
     Model->pushMatrix();
         Model->loadIdentity();
         // Entire dummy transformations:
+        Model->translate(vec3(-8, -1, 0));
         Model->rotate(-PI/2, vec3(1, 0, 0));
         Model->scale(0.018);
-
         Model->pushMatrix();
             Model->pushMatrix();
                 // Draw right arm:
@@ -816,7 +842,6 @@ void Application::render(float frametime)
                 for (int i = 15; i < 21; i++)
                     dummyShapes.at(i)->draw(prog);
             Model->popMatrix();
-
             Model->pushMatrix();
                 // Draw left upper arm:
                 Model->translate(vec3(2.33, 19.81, 137.60));
@@ -844,6 +869,15 @@ void Application::render(float frametime)
                         setModel(prog, Model);
                         for (int i = 25; i < 27; i++)
                             dummyShapes.at(i)->draw(prog);
+                        Model->pushMatrix();
+                            // Draw lantern:
+                            Model->translate(vec3(2.33, 73.06, 137.60));
+                            Model->rotate(lanternSpin, vec3(0, 1, 0));
+                            Model->translate(vec3(-0.72, 9.69, -38.36));
+                            setModel(prog, Model);
+                            for (int i = 0; i < lanternPieces.size(); i++)
+                                lanternPieces.at(i)->draw(prog);
+                        Model->popMatrix();
                     Model->popMatrix();
                 Model->popMatrix();
             Model->popMatrix();
@@ -866,7 +900,6 @@ void Application::render(float frametime)
                         dummyShapes.at(i)->draw(prog);
                 Model->popMatrix();
             Model->popMatrix();
-            
             Model->pushMatrix();
                 // Draw right upper leg:
                 Model->translate(vec3(2.33, -7.93, 92.95));
@@ -885,7 +918,6 @@ void Application::render(float frametime)
                         dummyShapes.at(i)->draw(prog);
                 Model->popMatrix();
             Model->popMatrix();
-
             // Draw torso, belly, neck, head:
             setModel(prog, Model);
             for (int i = 12; i < 29; i++) {
@@ -901,33 +933,20 @@ void Application::render(float frametime)
     lWristDownTheta = -PI / 4;
     lWristTwistTheta = PI / 5;
     lShoulderDownTheta = -(PI / 2) + 0.2;
-    lShoulderForwardTheta = - PI / 4;
-    // (0.2 * sin(glfwGetTime() * 1.2));
+    lShoulderForwardTheta = - PI / 5 + (0.2 * sin(glfwGetTime() * 1.2));
     lElbowInTheta = -PI / 8;
     lElbowUpTheta = -PI / 2;
     lKneeTheta = -0.3 * cos(glfwGetTime() * 2.3) + 0.35;
     lPelvisTheta = 0.5 * sin(glfwGetTime() * 2.3);
     rKneeTheta = 0.3 * cos(glfwGetTime() * 2.3) + 0.35;
     rPelvisTheta = -0.5 * sin(glfwGetTime() * 2.3);
-
-    prog->unbind();
-
-    /*
-    midPoint = getMidPoint(dummyShapes.at(11)->max.x,
-                            dummyShapes.at(11)->min.x,
-                            dummyShapes.at(11)->max.y,
-                            dummyShapes.at(11)->min.y,
-                            dummyShapes.at(11)->max.z,
-                            dummyShapes.at(11)->min.z);
-    cout << "x: " << midPoint[0] << endl;
-    cout << "y: " << midPoint[1] << endl;
-    cout << "z: " << midPoint[2] << endl;
-    */
-
-    // Dummy animation data:
-    
-
-    //switch shaders to the texture mapping shader and draw the ground
+    lanternSpin = - 0.1 * sin(1.2 * glfwGetTime()) + 0.25;
+}
+void Application::renderGround(shared_ptr<MatrixStack> Projection,
+                               shared_ptr<MatrixStack> View,
+                               shared_ptr<MatrixStack> Model,
+                               shared_ptr<Program> texProg)
+{
     texProg->bind();
     glUniformMatrix4fv(texProg->getUniform("P"), 1, GL_FALSE, value_ptr(Projection->topMatrix()));
     glUniformMatrix4fv(texProg->getUniform("V"), 1, GL_FALSE, value_ptr(View->topMatrix()));
@@ -935,10 +954,11 @@ void Application::render(float frametime)
             
     drawGround(texProg);
     texProg->unbind();
-
-    thePartSystem->setCamera(View->topMatrix());
-
-    // Draw campfire particles
+}
+void Application::drawCampfireParticles(shared_ptr<MatrixStack> Projection,
+                                        shared_ptr<MatrixStack> View,
+                                        shared_ptr<MatrixStack> Model)
+{
     CHECKED_GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
     partProg->bind();
     fireTex->bind(partProg->getUniform("alphaTexture"));
@@ -951,6 +971,54 @@ void Application::render(float frametime)
 
     partProg->unbind();
     CHECKED_GL_CALL(glBlendFunc(GL_ONE, GL_ZERO));
+}
+
+void Application::render(float frametime) 
+{
+    float aspect = renderSetup();
+
+    // Create the matrix stacks - please leave these alone for now
+    auto Projection = make_shared<MatrixStack>();
+    auto View = make_shared<MatrixStack>();
+    auto Model = make_shared<MatrixStack>();
+
+    // Update the camera position
+	updateUsingCameraPath(frametime);
+
+    // Apply perspective projection.
+    Projection->pushMatrix();
+    Projection->perspective(45.0f, aspect, 0.01f, 100.0f);
+
+    // Update basis vectors & lookAtPt
+    updateCam();
+
+    // View is global translation along negative z for now
+    View->pushMatrix();
+    View->loadIdentity();
+    View->lookAt(eyePos, lookAtPt, vec3(0, 1, 0));
+
+    // Draw skybox
+    drawSkybox(Projection, View, Model);
+
+    // Draw scene
+    prog->bind();
+    glUniformMatrix4fv(prog->getUniform("P"), 1, GL_FALSE, value_ptr(Projection->topMatrix()));
+    glUniformMatrix4fv(prog->getUniform("V"), 1, GL_FALSE, value_ptr(View->topMatrix()));
+    drawLights(prog);
+    drawCampfire();
+    drawTent();
+    drawTable();
+    drawLog();
+    drawTrees();
+    drawDummy(Model);
+    prog->unbind();
+
+    // Draw ground
+    renderGround(Projection, View, Model, texProg);
+
+    thePartSystem->setCamera(View->topMatrix());
+
+    drawCampfireParticles(Projection, View, Model);
 
     // Pop matrix stacks.
     Projection->popMatrix();

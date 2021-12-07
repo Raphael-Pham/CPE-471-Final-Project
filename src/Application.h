@@ -61,6 +61,9 @@ class Application : public EventCallbacks
         vector<vector<shared_ptr<Shape>>> trees;
         // Log
         shared_ptr<Shape> log;
+        // Lantern
+        vector<shared_ptr<Shape>> lanternPieces;
+        vec3 lanternGMin, lanternGMax;
 
         // Random tree generation arrays:
         vector<float> randScale = genRandScale();
@@ -106,6 +109,7 @@ class Application : public EventCallbacks
         float lPelvisTheta = 0;
         float rKneeTheta = 0;
         float rPelvisTheta = 0;
+        float lanternSpin = 0;
 
         // Camera scrolling variables:
         vec3 eyePosInit = vec3(-8, 2, 0);
@@ -156,6 +160,7 @@ class Application : public EventCallbacks
         void initTrees(const std::string&, vector<tinyobj::material_t>, vector<tinyobj::shape_t>, string);
         void initSkybox(const std::string&, vector<tinyobj::material_t>, vector<tinyobj::shape_t>, string);
         void initDummy(const std::string&, vector<tinyobj::material_t>, vector<tinyobj::shape_t>, string);
+        void initLantern(const std::string&, vector<tinyobj::material_t>, vector<tinyobj::shape_t>, string);
         void initGeom(const std::string&);
         void initGround();
 
@@ -168,6 +173,20 @@ class Application : public EventCallbacks
                           float, float, 
                           float, float);
         void updateUsingCameraPath(float);
+        float renderSetup();
+        void updateCam();
+        void drawSkybox(shared_ptr<MatrixStack>, shared_ptr<MatrixStack>, shared_ptr<MatrixStack>);
+        void drawLights(shared_ptr<Program>);
+        void drawCampfire();
+        void drawTent();
+        void drawTable();
+        void drawLog();
+        void drawTrees();
+        void drawDummy(shared_ptr<MatrixStack>);
+        void renderGround(shared_ptr<MatrixStack>, shared_ptr<MatrixStack>,
+                          shared_ptr<MatrixStack>, shared_ptr<Program>);
+        void drawCampfireParticles(shared_ptr<MatrixStack>, shared_ptr<MatrixStack>,
+                                   shared_ptr<MatrixStack>);
         void render(float);
         vector<float> genRandScale();
         vector<vector<float>> genRandTrans();
