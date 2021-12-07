@@ -66,6 +66,9 @@ void Application::keyCallback(
         lookAtPt.z = cos(scrollPhi) * cos((PI / 2.0) - scrollTheta) + lookAtPtDelta.z + eyePosInit.z;
         lookAtPtDelta = vec3(0, 0, 0);
     }
+    if (key == GLFW_KEY_F && action == GLFW_PRESS) {
+
+    }
 }
 
 void Application::mouseCallback(
@@ -597,6 +600,12 @@ void Application::SetMaterial(shared_ptr<Program> curS, int i)
             glUniform3f(curS->getUniform("MatSpec"), 0.0, 0.1, 0.0);
             glUniform1f(curS->getUniform("MatShine"), 16.0);
         break;
+        case 7:
+            glUniform3f(curS->getUniform("MatAmb"), 0.0, 0.0, 0.04);
+            glUniform3f(curS->getUniform("MatDif"), 0.0, 0.0, 0.4);
+            glUniform3f(curS->getUniform("MatSpec"), 0.0, 0.0, 0.2);
+            glUniform1f(curS->getUniform("MatShine"), 16.0);
+        break;
     }
 }
 
@@ -913,9 +922,12 @@ void Application::drawDummy(shared_ptr<MatrixStack> Model)
                             Model->rotate(lanternSpin, vec3(0, 1, 0));
                             Model->translate(vec3(-0.72, 9.69, -38.36));
                             setModel(prog, Model);
+                            SetMaterial(prog, 7);
                             for (int i = 0; i < lanternPieces.size(); i++)
                                 lanternPieces.at(i)->draw(prog);
+                            cout << lanternPieces.size() << endl;
                             glUniform3f(prog->getUniform("lightPos2"), eyePos.x, eyePos.y - 0.3, eyePos.z + 0.2);
+                            SetMaterial(prog, 4);
                         Model->popMatrix();
                     Model->popMatrix();
                 Model->popMatrix();
@@ -1013,6 +1025,19 @@ void Application::drawCampfireParticles(shared_ptr<MatrixStack> Projection,
     CHECKED_GL_CALL(glBlendFunc(GL_ONE, GL_ZERO));
 }
 
+void Application::switchCam()
+{
+    firstPerson != firstPerson;
+
+    if (firstPerson)
+    {
+
+    }
+    else
+    {
+
+    }
+}
 void Application::render(float frametime) 
 {
     float aspect = renderSetup();

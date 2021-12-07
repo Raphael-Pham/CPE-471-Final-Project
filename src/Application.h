@@ -119,6 +119,7 @@ class Application : public EventCallbacks
         vec3 lookAtPtDelta = vec3(0, 0, 0);
         float scrollTheta = 0;
         float scrollPhi = 0.0;
+        bool firstPerson = true;
 
         // Basis vectors:
         vec3 u = vec3(0, 0, 0);
@@ -200,6 +201,7 @@ class Application : public EventCallbacks
                           shared_ptr<MatrixStack>, shared_ptr<Program>);
         void drawCampfireParticles(shared_ptr<MatrixStack>, shared_ptr<MatrixStack>,
                                    shared_ptr<MatrixStack>);
+        void switchCam();
         void render(float);
         vector<float> genRandScale();
         vector<vector<float>> genRandTrans();
