@@ -425,6 +425,36 @@ void Application::initLantern(
         }
     }
 }
+void Application::initTower(
+    const std::string& resourceDirectory, 
+    vector<tinyobj::material_t> objMaterials,
+    vector<tinyobj::shape_t> TOshapes,
+    string errStr)
+{
+    shared_ptr<Shape> towerPiece;
+    bool rc = tinyobj::LoadObj(TOshapes, objMaterials, errStr, (resourceDirectory + "/watchtower.obj").c_str());
+    if (!rc) {
+        cerr << errStr << endl;
+    } else {
+        towerGMin.x = towerGMin.y = towerGMin.z = INT16_MAX;
+        towerGMax.x = towerGMax.y = towerGMax.z = INT16_MIN;
+
+        for (int i = 0; i < TOshapes.size(); i++) {
+            towerPiece = make_shared<Shape>();
+            towerPiece->createShape(TOshapes[i]);
+            towerPiece->measure();
+            towerPiece->init();
+            towerPieces.push_back(towerPiece);
+
+            if (towerPiece->min.x < towerGMin.x) towerGMin.x = towerPiece->min.x;
+            if (towerPiece->min.y < towerGMin.y) towerGMin.y = towerPiece->min.y;
+            if (towerPiece->min.z < towerGMin.z) towerGMin.z = towerPiece->min.z;
+            if (towerPiece->max.x > towerGMax.x) towerGMax.x = towerPiece->max.x;
+            if (towerPiece->max.y > towerGMax.y) towerGMax.y = towerPiece->max.y;
+            if (towerPiece->max.z > towerGMax.z) towerGMax.z = towerPiece->max.z;
+        }
+    }
+}
 void Application::initGeom(const std::string& resourceDirectory)
 {
     vector<tinyobj::material_t> objMaterials;
@@ -439,6 +469,7 @@ void Application::initGeom(const std::string& resourceDirectory)
     initSkybox(resourceDirectory, objMaterials, TOshapes, errStr);
     initDummy(resourceDirectory, objMaterials, TOshapes, errStr);
     initLantern(resourceDirectory, objMaterials, TOshapes, errStr);
+    initTower(resourceDirectory, objMaterials, TOshapes, errStr);
     initGround();
 }
 
@@ -822,6 +853,25 @@ void Application::drawTrees()
         treesMade++;
     }
 }
+void Application::drawTower()
+{
+    vector<float> midPoint;
+    mat4 trans1, rotY, scale, trans2, ctm;
+
+    SetMaterial(prog, 5);
+    midPoint = getMidPoint(towerGMax.x, towerGMin.x,
+                           towerGMax.y, towerGMin.y,
+                           towerGMax.z, towerGMin.z);
+    trans1 = setModel(vec3(-1 * midPoint.at(0), -1 * midPoint.at(1), -1 * midPoint.at(2)),
+                      0, 0, 0, 1);
+    scale = setModel(vec3(0, 0, 0), 0, 0, 0, 0.8);
+    rotY = setModel(vec3(0, 0, 0), 0, PI / 6, 0, 1);
+    trans2 = setModel(vec3(10, midPoint.at(1) - 5, -20), 0, 0, 0, 1);
+    ctm = trans2 * rotY * scale * trans1;
+    glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, value_ptr(ctm));
+    for (int i = 0; i < towerPieces.size(); i++)
+        towerPieces.at(i)->draw(prog);
+}
 float Application::distance(float x1, float z1, float x2, float z2)
 {
     return sqrt(pow(x2 - x1, 2) + pow(z2 - z1, 2) * 1.0);
@@ -925,7 +975,6 @@ void Application::drawDummy(shared_ptr<MatrixStack> Model)
                             SetMaterial(prog, 7);
                             for (int i = 0; i < lanternPieces.size(); i++)
                                 lanternPieces.at(i)->draw(prog);
-                            cout << lanternPieces.size() << endl;
                             glUniform3f(prog->getUniform("lightPos2"), eyePos.x, eyePos.y - 0.3, eyePos.z + 0.2);
                             SetMaterial(prog, 4);
                         Model->popMatrix();
@@ -1025,19 +1074,6 @@ void Application::drawCampfireParticles(shared_ptr<MatrixStack> Projection,
     CHECKED_GL_CALL(glBlendFunc(GL_ONE, GL_ZERO));
 }
 
-void Application::switchCam()
-{
-    firstPerson != firstPerson;
-
-    if (firstPerson)
-    {
-
-    }
-    else
-    {
-
-    }
-}
 void Application::render(float frametime) 
 {
     float aspect = renderSetup();
@@ -1073,6 +1109,7 @@ void Application::render(float frametime)
     drawCampfire();
     drawTent();
     drawTable();
+    drawTower();
     drawLog();
     drawTrees();
 

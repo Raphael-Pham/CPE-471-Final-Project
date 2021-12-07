@@ -65,6 +65,9 @@ class Application : public EventCallbacks
         // Lantern
         vector<shared_ptr<Shape>> lanternPieces;
         vec3 lanternGMin, lanternGMax;
+        // Watchtower
+        vector<shared_ptr<Shape>> towerPieces;
+        vec3 towerGMin, towerGMax;
 
         // Random tree generation arrays:
         vector<float> randScale = genRandScale();
@@ -172,6 +175,7 @@ class Application : public EventCallbacks
         void initSkybox(const std::string&, vector<tinyobj::material_t>, vector<tinyobj::shape_t>, string);
         void initDummy(const std::string&, vector<tinyobj::material_t>, vector<tinyobj::shape_t>, string);
         void initLantern(const std::string&, vector<tinyobj::material_t>, vector<tinyobj::shape_t>, string);
+        void initTower(const std::string&, vector<tinyobj::material_t>, vector<tinyobj::shape_t>, string);
         void initGeom(const std::string&);
         void initGround();
 
@@ -191,6 +195,7 @@ class Application : public EventCallbacks
         void drawCampfire();
         void drawTent();
         void drawTable();
+        void drawTower();
         void drawLog();
         void drawTrees();
         float distance(float, float, float, float);
@@ -201,7 +206,6 @@ class Application : public EventCallbacks
                           shared_ptr<MatrixStack>, shared_ptr<Program>);
         void drawCampfireParticles(shared_ptr<MatrixStack>, shared_ptr<MatrixStack>,
                                    shared_ptr<MatrixStack>);
-        void switchCam();
         void render(float);
         vector<float> genRandScale();
         vector<vector<float>> genRandTrans();
