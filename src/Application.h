@@ -4,6 +4,7 @@
 #include <iostream>
 #include <glad/glad.h>
 #include <chrono>
+#include <set>
 
 #include "GLSL.h"
 #include "Program.h"
@@ -142,8 +143,12 @@ class Application : public EventCallbacks
 
         // Movement data:
         bool moving, wPress, sPress, aPress, dPress = false;
+        char lastPressed;
         vec3 dummyPos = vec3(-8.5, -1, 0);
         float dummyTurn = 0;
+
+        // Collision detection:
+        vector<pair<float, float>> bounds;
 
         // Misc:
         WindowManager *windowManager = nullptr;
@@ -187,6 +192,9 @@ class Application : public EventCallbacks
         void drawTable();
         void drawLog();
         void drawTrees();
+        float distance(float, float, float, float);
+        bool checkCollision();
+        void fixPosition();
         void drawDummy(shared_ptr<MatrixStack>);
         void renderGround(shared_ptr<MatrixStack>, shared_ptr<MatrixStack>,
                           shared_ptr<MatrixStack>, shared_ptr<Program>);

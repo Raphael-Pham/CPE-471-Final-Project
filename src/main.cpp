@@ -3,7 +3,6 @@
  * multi shape objects 
  * CPE 471 Cal Poly Z. Wood + S. Sueda + I. Dunn
  */
-
 #include "Application.h"
 
 using namespace std;

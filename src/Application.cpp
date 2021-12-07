@@ -68,42 +68,6 @@ void Application::keyCallback(
     }
 }
 
-void Application::movePrimary()
-{
-    float speed = 0.1;
-    if (moving) {
-        if (wPress){
-            eyePos.x += -speed * w.x;
-            eyePos.z += -speed * w.z;
-            dummyPos.x += -speed * w.x;
-            dummyPos.z += -speed * w.z;
-            lookAtPtDelta.x += -speed * w.x;
-            lookAtPtDelta.z += -speed * w.z;
-        } else if (sPress) {
-            eyePos.x += speed * w.x;
-            eyePos.z += speed * w.z;
-            dummyPos.x += speed * w.x;
-            dummyPos.z += speed * w.z;
-            lookAtPtDelta.x += speed * w.x;
-            lookAtPtDelta.z += speed * w.z;
-        } else if (aPress) {
-            eyePos.x += -speed * u.x;
-            eyePos.z += -speed * u.z;
-            dummyPos.x += -speed * u.x;
-            dummyPos.z += -speed * u.z;
-            lookAtPtDelta.x += -speed * u.x;
-            lookAtPtDelta.z += -speed * u.z;
-        } else if (dPress) {
-            eyePos.x += speed * u.x;
-            eyePos.z += speed * u.z;
-            dummyPos.x += speed * u.x;
-            dummyPos.z += speed * u.z;
-            lookAtPtDelta.x += speed * u.x;
-            lookAtPtDelta.z += speed * u.z;
-        }
-    }
-}
-
 void Application::mouseCallback(
     GLFWwindow *window, 
     int button, 
@@ -746,7 +710,6 @@ void Application::drawSkybox(shared_ptr<MatrixStack> Projection,
 void Application::drawLights(shared_ptr<Program> prog)
 {
     glUniform3f(prog->getUniform("lightPos1"), 0.0, -0.25, 0.0);
-    // glUniform3f(prog->getUniform("lightPos2"), 0.0 + lightTrans, -0.25, 0.0);
 }
 void Application::drawCampfire()
 {
@@ -831,6 +794,12 @@ void Application::drawTrees()
         float xRand = randTrans[treesMade][0];
         float zRand = randTrans[treesMade][1];
 
+        // Update bounds sets
+        pair<float, float> bound;
+        bound.first = xRand;
+        bound.second = zRand;
+        bounds.push_back(bound);
+
         trans1 = setModel(vec3(-1 * midPoint.at(0), -1 * midPoint.at(1), -1 * midPoint.at(2)),
                     0, 0, 0, 1);
         scale = setModel(vec3(0, 0, 0), 0, 0, 0, randScale.at(treesMade));
@@ -842,6 +811,52 @@ void Application::drawTrees()
             pieces.at(j)->draw(prog);
         }
         treesMade++;
+    }
+}
+float Application::distance(float x1, float z1, float x2, float z2)
+{
+    return sqrt(pow(x2 - x1, 2) + pow(z2 - z1, 2) * 1.0);
+}
+bool Application::checkCollision()
+{
+    for (pair<float, float> bound : bounds)
+    {
+        if (distance(dummyPos.x, dummyPos.z, bound.first, bound.second) <= 5)
+            return true;
+    }
+    return false;
+}
+void Application::fixPosition()
+{
+    float speed = 0.1;
+    if (lastPressed == 'w') {
+        eyePos.x += speed * w.x;
+        eyePos.z += speed * w.z;
+        dummyPos.x += speed * w.x;
+        dummyPos.z += speed * w.z;
+        lookAtPtDelta.x += speed * w.x;
+        lookAtPtDelta.z += speed * w.z;
+    } else if (lastPressed = 's') {
+        eyePos.x += -speed * w.x;
+        eyePos.z += -speed * w.z;
+        dummyPos.x += -speed * w.x;
+        dummyPos.z += -speed * w.z;
+        lookAtPtDelta.x += -speed * w.x;
+        lookAtPtDelta.z += -speed * w.z;
+    } else if (lastPressed = 'a') {
+        eyePos.x += speed * u.x;
+        eyePos.z += speed * u.z;
+        dummyPos.x += speed * u.x;
+        dummyPos.z += speed * u.z;
+        lookAtPtDelta.x += speed * u.x;
+        lookAtPtDelta.z += speed * u.z;
+    } else if (lastPressed = 'd') {
+        eyePos.x += -speed * u.x;
+        eyePos.z += -speed * u.z;
+        dummyPos.x += -speed * u.x;
+        dummyPos.z += -speed * u.z;
+        lookAtPtDelta.x += -speed * u.x;
+        lookAtPtDelta.z += -speed * u.z;
     }
 }
 void Application::drawDummy(shared_ptr<MatrixStack> Model)
@@ -893,13 +908,14 @@ void Application::drawDummy(shared_ptr<MatrixStack> Model)
                         for (int i = 25; i < 27; i++)
                             dummyShapes.at(i)->draw(prog);
                         Model->pushMatrix();
-                            // Draw lantern:
+                            // Draw lantern & light:
                             Model->translate(vec3(2.33, 73.06, 137.60));
                             Model->rotate(lanternSpin, vec3(0, 1, 0));
                             Model->translate(vec3(-0.72, 9.69, -38.36));
                             setModel(prog, Model);
                             for (int i = 0; i < lanternPieces.size(); i++)
                                 lanternPieces.at(i)->draw(prog);
+                            glUniform3f(prog->getUniform("lightPos2"), eyePos.x, eyePos.y - 0.3, eyePos.z + 0.2);
                         Model->popMatrix();
                     Model->popMatrix();
                 Model->popMatrix();
@@ -956,14 +972,15 @@ void Application::drawDummy(shared_ptr<MatrixStack> Model)
     lWristDownTheta = -PI / 4;
     lWristTwistTheta = PI / 5;
     lShoulderDownTheta = -(PI / 2) + 0.2;
-    lShoulderForwardTheta = - PI / 5 + (0.2 * sin(glfwGetTime() * 1.2));
+    lShoulderForwardTheta = - PI / 4;
+    //  + (0.2 * sin(glfwGetTime() * 1.2));
     lElbowInTheta = -PI / 8;
     lElbowUpTheta = -PI / 2;
     lKneeTheta = -0.3 * cos(glfwGetTime() * 2.3) + 0.35;
     lPelvisTheta = 0.5 * sin(glfwGetTime() * 2.3);
     rKneeTheta = 0.3 * cos(glfwGetTime() * 2.3) + 0.35;
     rPelvisTheta = -0.5 * sin(glfwGetTime() * 2.3);
-    lanternSpin = - 0.1 * sin(1.2 * glfwGetTime()) + 0.25;
+    // lanternSpin = - 0.1 * sin(1.2 * glfwGetTime()) + 0.25;
 }
 void Application::renderGround(shared_ptr<MatrixStack> Projection,
                                shared_ptr<MatrixStack> View,
@@ -1033,13 +1050,13 @@ void Application::render(float frametime)
     drawTable();
     drawLog();
     drawTrees();
-    prog->unbind();
 
-    prog->bind();
-    View->pushMatrix();
-        View->loadIdentity();
-        drawDummy(Model);
-    View->popMatrix();
+    // Collision detection
+    bool collision = checkCollision();
+    if (collision)
+        fixPosition();
+
+    drawDummy(Model);
     prog->unbind();
 
     // Draw ground
@@ -1083,4 +1100,43 @@ vector<vector<float>> Application::genRandTrans()
         i++;
     }
     return res;
+}
+void Application::movePrimary()
+{
+    float speed = 0.1;
+    if (moving) {
+        if (wPress){
+            eyePos.x += -speed * w.x;
+            eyePos.z += -speed * w.z;
+            dummyPos.x += -speed * w.x;
+            dummyPos.z += -speed * w.z;
+            lookAtPtDelta.x += -speed * w.x;
+            lookAtPtDelta.z += -speed * w.z;
+            lastPressed = 'w';
+        } else if (sPress) {
+            eyePos.x += speed * w.x;
+            eyePos.z += speed * w.z;
+            dummyPos.x += speed * w.x;
+            dummyPos.z += speed * w.z;
+            lookAtPtDelta.x += speed * w.x;
+            lookAtPtDelta.z += speed * w.z;
+            lastPressed = 's';
+        } else if (aPress) {
+            eyePos.x += -speed * u.x;
+            eyePos.z += -speed * u.z;
+            dummyPos.x += -speed * u.x;
+            dummyPos.z += -speed * u.z;
+            lookAtPtDelta.x += -speed * u.x;
+            lookAtPtDelta.z += -speed * u.z;
+            lastPressed = 'a';
+        } else if (dPress) {
+            eyePos.x += speed * u.x;
+            eyePos.z += speed * u.z;
+            dummyPos.x += speed * u.x;
+            dummyPos.z += speed * u.z;
+            lookAtPtDelta.x += speed * u.x;
+            lookAtPtDelta.z += speed * u.z;
+            lastPressed = 'd';
+        }
+    }
 }
