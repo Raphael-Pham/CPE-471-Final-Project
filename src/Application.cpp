@@ -7,51 +7,35 @@ void Application::keyCallback(
     int action, 
     int mods)
 {
-    float speed = 1.3;
-    keyToggles[key] = ! keyToggles[key];
+    keyToggles[key] = !keyToggles[key];
 
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
         glfwSetWindowShouldClose(window, GL_TRUE);
     }
     if (key == GLFW_KEY_W && action == GLFW_PRESS) {
-        eyePos.x += -speed * w.x;
-        eyePos.z += -speed * w.z;
-        lookAtPtDelta.x += -speed * w.x;
-        lookAtPtDelta.z += -speed * w.z;
+        wPress = moving = true;
     }
-    if (key == GLFW_KEY_A && action == GLFW_PRESS)
-    {
-        eyePos.x += -speed * u.x;
-        eyePos.z += -speed * u.z;
-        lookAtPtDelta.x += -speed * u.x;
-        lookAtPtDelta.z += -speed * u.z;
+    if (key == GLFW_KEY_W && action == GLFW_RELEASE) {
+        wPress = moving = false;
     }
-    if (key == GLFW_KEY_D && action == GLFW_PRESS)
-    {
-        eyePos.x += speed * u.x;
-        eyePos.z += speed * u.z;
-        lookAtPtDelta.x += speed * u.x;
-        lookAtPtDelta.z += speed * u.z;
+    if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+        sPress = moving = true;
     }
-    if (key == GLFW_KEY_S && action == GLFW_PRESS)
-    {
-        eyePos.x += speed * w.x;
-        eyePos.z += speed * w.z;
-        lookAtPtDelta.x += speed * w.x;
-        lookAtPtDelta.z += speed * w.z;
+    if (key == GLFW_KEY_S && action == GLFW_RELEASE) {
+        sPress = moving = false;
     }
-    if (key == GLFW_KEY_F && action == GLFW_PRESS)
-    {
-        gCamH  -= 0.25;
+    if (key == GLFW_KEY_A && action == GLFW_PRESS) {
+        aPress = moving = true;
     }
-    if (key == GLFW_KEY_Q && action == GLFW_PRESS)
-    {
-        lightTrans += 5;
+    if (key == GLFW_KEY_A && action == GLFW_RELEASE) {
+        aPress = moving = false;
     }
-    if (key == GLFW_KEY_E && action == GLFW_PRESS)
-    {
-        lightTrans -= 5;
+    if (key == GLFW_KEY_D && action == GLFW_PRESS) {
+        dPress = moving = true;
+    }
+    if (key == GLFW_KEY_D && action == GLFW_RELEASE) {
+        dPress = moving = false;
     }
     if (key == GLFW_KEY_M && action == GLFW_PRESS)
     {
@@ -84,6 +68,42 @@ void Application::keyCallback(
     }
 }
 
+void Application::movePrimary()
+{
+    float speed = 0.1;
+    if (moving) {
+        if (wPress){
+            eyePos.x += -speed * w.x;
+            eyePos.z += -speed * w.z;
+            dummyPos.x += -speed * w.x;
+            dummyPos.z += -speed * w.z;
+            lookAtPtDelta.x += -speed * w.x;
+            lookAtPtDelta.z += -speed * w.z;
+        } else if (sPress) {
+            eyePos.x += speed * w.x;
+            eyePos.z += speed * w.z;
+            dummyPos.x += speed * w.x;
+            dummyPos.z += speed * w.z;
+            lookAtPtDelta.x += speed * w.x;
+            lookAtPtDelta.z += speed * w.z;
+        } else if (aPress) {
+            eyePos.x += -speed * u.x;
+            eyePos.z += -speed * u.z;
+            dummyPos.x += -speed * u.x;
+            dummyPos.z += -speed * u.z;
+            lookAtPtDelta.x += -speed * u.x;
+            lookAtPtDelta.z += -speed * u.z;
+        } else if (dPress) {
+            eyePos.x += speed * u.x;
+            eyePos.z += speed * u.z;
+            dummyPos.x += speed * u.x;
+            dummyPos.z += speed * u.z;
+            lookAtPtDelta.x += speed * u.x;
+            lookAtPtDelta.z += speed * u.z;
+        }
+    }
+}
+
 void Application::mouseCallback(
     GLFWwindow *window, 
     int button, 
@@ -110,6 +130,8 @@ void Application::scrollCallback(GLFWwindow *window, double deltaX, double delta
         scrollPhi = -1.4;
 
     scrollTheta += 20 * (PI / width) * deltaX;
+    dummyTurn = -scrollTheta;
+    dummyPos = eyePos + vec3(0.5 * w.x, -2.5, 0.5 * w.z);
 }
 
 void Application::resizeCallback(GLFWwindow *window, int width, int height)
@@ -603,7 +625,7 @@ void Application::SetMaterial(shared_ptr<Program> curS, int i)
             glUniform3f(curS->getUniform("MatAmb"), 0.0361, 0.0251, 0.02);
             glUniform3f(curS->getUniform("MatDif"), 0.361, 0.251, 0.2);
             glUniform3f(curS->getUniform("MatSpec"), 0.18, 0.125, 0.1);
-            glUniform1f(curS->getUniform("MatShine"), 60.0);
+            glUniform1f(curS->getUniform("MatShine"), 4.0);
         break;
         case 6:
             glUniform3f(curS->getUniform("MatAmb"), 0.0, 0.02, 0.0);
@@ -723,8 +745,8 @@ void Application::drawSkybox(shared_ptr<MatrixStack> Projection,
 }
 void Application::drawLights(shared_ptr<Program> prog)
 {
-    glUniform3f(prog->getUniform("lightPos1"), 0.0 + lightTrans, -0.25, 0.0);
-    glUniform3f(prog->getUniform("lightPos2"), 0.0 + lightTrans, -0.25, 0.0);
+    glUniform3f(prog->getUniform("lightPos1"), 0.0, -0.25, 0.0);
+    // glUniform3f(prog->getUniform("lightPos2"), 0.0 + lightTrans, -0.25, 0.0);
 }
 void Application::drawCampfire()
 {
@@ -828,7 +850,8 @@ void Application::drawDummy(shared_ptr<MatrixStack> Model)
     Model->pushMatrix();
         Model->loadIdentity();
         // Entire dummy transformations:
-        Model->translate(vec3(-8, -1, 0));
+        Model->translate(dummyPos);
+        Model->rotate(dummyTurn, vec3(0, 1, 0));
         Model->rotate(-PI/2, vec3(1, 0, 0));
         Model->scale(0.018);
         Model->pushMatrix();
@@ -1010,7 +1033,13 @@ void Application::render(float frametime)
     drawTable();
     drawLog();
     drawTrees();
-    drawDummy(Model);
+    prog->unbind();
+
+    prog->bind();
+    View->pushMatrix();
+        View->loadIdentity();
+        drawDummy(Model);
+    View->popMatrix();
     prog->unbind();
 
     // Draw ground
@@ -1019,6 +1048,9 @@ void Application::render(float frametime)
     thePartSystem->setCamera(View->topMatrix());
 
     drawCampfireParticles(Projection, View, Model);
+
+    // Move primary camera and dummy if necessary
+    movePrimary();
 
     // Pop matrix stacks.
     Projection->popMatrix();

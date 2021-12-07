@@ -112,7 +112,7 @@ class Application : public EventCallbacks
         float lanternSpin = 0;
 
         // Camera scrolling variables:
-        vec3 eyePosInit = vec3(-8, 2, 0);
+        vec3 eyePosInit = vec3(-8, 1.5, 0);
         vec3 eyePos = eyePosInit;
         vec3 lookAtPt = vec3(0, 0, 0);
         vec3 lookAtPtDelta = vec3(0, 0, 0);
@@ -139,6 +139,11 @@ class Application : public EventCallbacks
         // Spline path vars:
         Spline splinepath[2];
 	    bool goCamera = false;
+
+        // Movement data:
+        bool moving, wPress, sPress, aPress, dPress = false;
+        vec3 dummyPos = vec3(-8.5, -1, 0);
+        float dummyTurn = 0;
 
         // Misc:
         WindowManager *windowManager = nullptr;
@@ -190,6 +195,7 @@ class Application : public EventCallbacks
         void render(float);
         vector<float> genRandScale();
         vector<vector<float>> genRandTrans();
+        void movePrimary();
 };
 
 #endif

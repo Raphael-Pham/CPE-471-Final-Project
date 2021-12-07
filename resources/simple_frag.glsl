@@ -34,13 +34,13 @@ void main()
 
     float ambStrength = 1;
 
-    float difStrength1 = 0.3;
+    float difStrength1 = 3;
     float specStrength1 = 0.3;
 
-    float difStrength2 = 1;
-    float specStrength2 = 0.5;
+    float difStrength2 = 0;
+    float specStrength2 = 0;
 
-    float c1 = 0.5;
+    float c1 = 0.4;
     float c2 = 0.04;
 
     color = vec4(ambStrength*MatAmb + 

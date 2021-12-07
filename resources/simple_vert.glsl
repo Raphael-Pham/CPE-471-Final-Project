@@ -18,8 +18,8 @@ void main()
 {
 	gl_Position = P * V * M * vertPos;
 	
-	fragNor = (V * M * vec4(vertNor, 0.0)).xyz; 
-	lightDir1 = lightPos1 - (V * M * vertPos).xyz;
+	fragNor = (M * vec4(vertNor, 0.0)).xyz; 
+	lightDir1 = lightPos1 - (M * vertPos).xyz;
     lightDir2 = lightPos2 - (M * vertPos).xyz;
-	EPos = -1 * (V * M * vertPos).xyz;
+	EPos = -1 * (M * vertPos).xyz;
 }
